@@ -1,0 +1,3 @@
+*.rockspec
+dist/*
+opa/opa

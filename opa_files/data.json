@@ -1,0 +1,16 @@
+{
+  "routes": {
+    "some_route_name_here": {
+      "statements": [
+        {
+          "roles": ["DBA"],
+          "methods": ["GET"]
+        },
+        {
+          "roles": ["SRE"],
+          "methods": ["GET", "PATCH", "DELETE"]
+        }
+      ]
+    }
+  }
+}
