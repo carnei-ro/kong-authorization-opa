@@ -1,7 +1,7 @@
 # OPA Kong Plugin
 summary: Custom Kong plugin to allow for fine grained Authorization through Open Policy Agent
 
-_Created to work with Kong 2.0.x
+_Created to work with Kong >= 2.0.x
 
 Inspired by https://github.com/TravelNest/kong-authorization-opa  
 Connection based on https://github.com/Kong/kong-plugin-aws-lambda
@@ -11,6 +11,8 @@ Custom Kong plugin to allow for fine grained Authorization through [Open Policy 
 Plugin will continue the request to the upstream target if OPA responds with `true`, else the plugin will return a `403 Forbidden`.
 
 Requests will add the header `X-Kong-Authz-Latency` to requests which have been impacted by the plugin.
+
+Plugin priority: `799`
 
 ## Setup
 
@@ -33,8 +35,16 @@ Requests will add the header `X-Kong-Authz-Latency` to requests which have been 
 |`forward_request_body`       |flag to forward request body                                                                                 |`boolean`| true    |
 |`forward_request_cookies`    |flag to forward request cookies (will remove headers.cookie)                                                 |`boolean`| true    |
 |`debug`                      |flag to return the request/response to/from OPA - not the upstream target (used for testing purposes)        |`boolean`| false   |
-|`config.proxy_url`           |An optional value that defines whether the plugin should connect through the given proxy server URL. This value is required if `proxy_scheme` is defined. | `string` | |
-|`config.proxy_scheme` |An optional value that defines which HTTP protocol scheme to use in order to connect through the proxy server. The schemes supported are: `http` and `https`. This value is required if `proxy_url` is defined. | `string` | |
+|`proxy_url`           |An optional value that defines whether the plugin should connect through the given proxy server URL. This value is required if `proxy_scheme` is defined. | `string` | |
+|`proxy_scheme` |An optional value that defines which HTTP protocol scheme to use in order to connect through the proxy server. The schemes supported are: `http` and `https`. This value is required if `proxy_url` is defined. | `string` | |
+|`use_redis_cache`            |flag to cache OPA response in Redis   |`boolean`| false   |
+|`redis_cache_ttl`            |Redis Key TTL (in seconds)   |`integer`| 15   |
+|`redis_host`                 |Redis Host to connect   |`string`|   |
+|`redis_port`                 |Redis Port to connect   |`integer`| 6379 |
+|`redis_password`             |Redis Password to connect   |`string`| |
+|`redis_timeout_in_ms`        |Redis Timeout (in miliseconds)   |`integer`| 500 |
+|`redis_database`             |Redis Database to Use   |`integer`| 0 |
+
 
 #### Example
 
@@ -82,4 +92,5 @@ $ curl -i -X POST \
 ## Roadmap
 
 - Recreate the connection part based on the AWS Lambda plugin (OK)
-- Implement toggle to use cache
+- Implement toggle to use distributed cache (OK)
+- Use pongo to create a test suit

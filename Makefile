@@ -93,7 +93,7 @@ populate-opa-server:
 config:
 	@curl -s -X POST http://localhost:8001/services/ -d 'name=httpbin' -d url=http://httpbin.org/anything
 	@curl -s -X POST http://localhost:8001/services/httpbin/routes -d 'paths[]=/' -d 'name=some_route_name_here'
-	@curl -i -X POST http://localhost:8001/routes/some_route_name_here/plugins -d "name=${NAME}" -d "config.opa_host=opa_server" -d "config.opa_port=8181" -d "config.policy_uri=/v1/data/carneiro/policy1" -d "config.opa_result_boolean_key=deny" -d "config.opa_result_boolean_value=false"
+	@curl -i -X POST http://localhost:8001/routes/some_route_name_here/plugins -d "name=${NAME}" -d "config.opa_host=opa_server" -d "config.opa_port=8181" -d "config.policy_uri=/v1/data/carneiro/policy1" -d "config.opa_result_boolean_key=deny" -d "config.opa_result_boolean_value=false" -d "config.use_redis_cache=true" -d "config.redis_host=redis"
 
 config-plugin-remove:
 	@curl -i -X DELETE http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")
@@ -104,6 +104,14 @@ config-plugin-enable-debug:
 
 config-plugin-disable-debug:
 	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.debug=false"
+	@echo " "
+
+config-plugin-enable-cache:
+	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.use_redis_cache=true"
+	@echo " "
+
+config-plugin-disable-cache:
+	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.use_redis_cache=false"
 	@echo " "
 
 remove-all:

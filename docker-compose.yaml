@@ -12,6 +12,7 @@ services:
     environment:
       - POSTGRES_USER=kong
       - POSTGRES_DB=kong
+      - POSTGRES_PASSWORD=kong
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
@@ -24,6 +25,7 @@ services:
     restart: on-failure
     environment:
       KONG_PG_HOST: kong-database
+      KONG_PG_PASSWORD: kong
     links:
       - kong-database
     depends_on:
@@ -37,6 +39,12 @@ services:
     command:
       run --server --log-level debug
 
+  redis:
+    image: redis
+    restart: on-failure
+    ports:
+      - "6379:6379"
+
   kong:
     image: kong:2.0.3-centos
     depends_on:
@@ -46,14 +54,12 @@ services:
       - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt
       - KONG_DATABASE=postgres
       - KONG_PG_HOST=kong-database
+      - KONG_PG_PASSWORD=kong
       - KONG_PROXY_ACCESS_LOG=/dev/stdout
       - KONG_ADMIN_ACCESS_LOG=/dev/stdout
       - KONG_PROXY_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001
-      - KONG_ADMIN_LISTEN_SSL=0.0.0.0:8444
-      - KONG_VITALS=off
-      - KONG_PORTAL=off
       - KONG_LOG_LEVEL=debug
       - KONG_PLUGINS=bundled,${NAME}
     volumes:
@@ -73,13 +79,7 @@ services:
         /usr/local/bin/kong start --run-migrations --vv
     ports:
       - "8000:8000"
-      - "8443:8443"
       - "8001:8001"
-      - "8444:8444"
-      - "8002:8002"
-      - "8445:8445"
-      - "8003:8003"
-      - "8004:8004"
 
 volumes:
 

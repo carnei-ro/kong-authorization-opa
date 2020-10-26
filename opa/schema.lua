@@ -93,6 +93,40 @@ return {
             one_of = { "http", "https" }
           } },
           { proxy_url = typedefs.url },
+          { use_redis_cache = {
+            type = "boolean",
+            required = true,
+            default = false,
+          } },
+          { redis_cache_ttl = {
+            type = "integer",
+            default = 15,
+            required = true,
+            gt = -1
+          } },
+          { redis_host = typedefs.host {
+            required = true
+          } },
+          { redis_port = typedefs.port {
+            default = 6379,
+            required = true
+          } },
+          { redis_timeout_in_ms = {
+            type = "number",
+            default = 500,
+            required = true,
+            gt = 0
+          } },
+          { redis_database = {
+            type = "integer",
+            default = 0,
+            required = true,
+            gt = -1
+          } },
+          { redis_password = {
+            type = "string",
+            len_min = 1,
+          } },
         },
       },
     },

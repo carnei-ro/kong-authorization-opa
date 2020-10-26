@@ -1,14 +1,16 @@
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
-local http = require("kong.plugins." .. plugin_name .. ".connect-better")
+local http  = require("kong.plugins." .. plugin_name .. ".connect-better")
+local redis = require("kong.plugins." .. plugin_name .. ".redis")
 
 local kong              = kong
-local cjson             = require "cjson.safe"
+local cjson             = require("cjson.safe").new()
 local resty_cookie      = require('resty.cookie')
 local table_insert      = table.insert
 local string_find       = string.find
 local pairs             = pairs
 local ngx_encode_base64 = ngx.encode_base64
 
+cjson.decode_array_with_array_mt(true)
 
 local _M = {}
 
@@ -85,18 +87,8 @@ local function prepare_payload(conf)
   return payload
 end
 
---- access
-function _M.execute(conf)
-  local start_time = ngx.now()
-  local opa_body   = {}
-  opa_body         = prepare_payload(conf)
-
-  local opa_body_json, err = cjson.encode(opa_body)
-  if not opa_body_json then
-    kong.log.err("[opa] could not JSON encode upstream body",
-    " to forward request values: ", err)
-  end
-
+local function request_to_opa(conf, opa_body_json)
+  kong.log.debug(" => Request to OPA")
   local method = conf.opa_method
   local scheme = conf.opa_scheme
   local host   = conf.opa_host
@@ -107,7 +99,7 @@ function _M.execute(conf)
   local client = http.new()
   client:set_timeout(conf.timeout)
 
-  local ok
+  local ok, err
   ok, err = client:connect_better {
     scheme = scheme,
     host = host,
@@ -119,7 +111,7 @@ function _M.execute(conf)
   }
   if not ok then
     kong.log.err(err)
-    return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+    return kong.response.exit(500, { message = "An unexpected error occurred 0", error = err })
   end
 
   local res, err = client:request {
@@ -143,31 +135,52 @@ function _M.execute(conf)
     return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
   end
 
-  local body, err = cjson.decode(content)
-  if not body then
-    return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+  return content
+end
+
+--- access
+function _M.execute(conf)
+  local start_time = ngx.now()
+  local opa_body   = {}
+  opa_body         = prepare_payload(conf)
+
+  local opa_body_json, err = cjson.encode(opa_body)
+  if not opa_body_json then
+    kong.log.err("[opa] could not JSON encode upstream body",
+    " to forward request values: ", err)
   end
 
-  kong.response.set_header("X-Kong-Authz-Latency", (ngx.now() - start_time) )
+  local body, err
+  if (conf.use_redis_cache) then
+    local red = redis:connection(conf)
+    body, err = redis:get(red, opa_body_json, conf.redis_cache_ttl, request_to_opa, conf, opa_body_json)
+  else
+    body, err = request_to_opa(conf, opa_body_json)
+  end
+  if (not body) or (err) then
+    return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+  end
+  body = cjson.decode(body)
 
   if conf.debug then
-    kong.response.exit(200, { request = opa_body, response = body } )
+    kong.response.exit(200, { request = opa_body, response = body }, {["X-Kong-Authz-Latency"] = (ngx.now() - start_time)} )
   end
 
   local result = body.result
   if not result then
-    return kong.response.exit(400, { message = "Could not get result from OPA", opa_response = body })
+    return kong.response.exit(400, { message = "Could not get result from OPA", opa_response = body } , {["X-Kong-Authz-Latency"] = (ngx.now() - start_time)})
   end
   
   local evaluation_result_key_value = result[conf.opa_result_boolean_key]
   if not (type(evaluation_result_key_value) == "boolean") then
-    return kong.response.exit(400, { message = "OPA response body does not contains boolean key: " .. conf.opa_result_boolean_key, opa_response_result = result })
+    return kong.response.exit(400, { message = "OPA response body does not contains boolean key: " .. conf.opa_result_boolean_key, opa_response_result = result } , {["X-Kong-Authz-Latency"] = (ngx.now() - start_time)})
   end
 
   if not (evaluation_result_key_value == conf.opa_result_boolean_value) then
-    return kong.response.exit(403, { message = "Unauthorized by OPA", opa_result = result })
+    return kong.response.exit(403, { message = "Unauthorized by OPA", opa_result = result }, {["X-Kong-Authz-Latency"] = (ngx.now() - start_time)})
   end
 
+  kong.response.set_header("X-Kong-Authz-Latency", (ngx.now() - start_time))
 end
 
 return _M
