@@ -6,10 +6,10 @@ SUMMARY := $(shell sed -n '/^summary: /s/^summary: //p' README.md)
 export UID GID NAME VERSION 
 
 build: rockspec validate
-	@find . -type f -iname "*lua~" -exec rm -f {} \;
-	@docker run --rm \
-          -v ${PWD}:/plugin \
-	  kong /bin/sh -c "apk add --no-cache zip > /dev/null 2>&1 ; cd /plugin ; luarocks make > /dev/null 2>&1 ; luarocks pack ${NAME} 2> /dev/null ; chown ${UID}:${GID} *.rock"
+	@find opa/ -type f -iname "*lua~" -exec rm -f {} \;
+	@docker run --rm -u 0 -v ${PWD}:/plugin \
+					--entrypoint /bin/bash kong:2.0.3-centos \
+					-c "cd /plugin ; yum install -y zip; luarocks make > /dev/null 2>&1 ; luarocks pack ${NAME} 2> /dev/null ; chown ${UID}:${GID} *.rock"
 	@mkdir -p dist
 	@mv *.rock dist/
 	@printf '\n\n Check "dist" folder \n\n'
