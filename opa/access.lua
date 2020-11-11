@@ -185,7 +185,8 @@ function _M.execute(conf)
   if (not body) or (err) then
     if conf.fault_tolerant then
       kong.response.set_header("X-Kong-Authz-Latency", (ngx.now() - start_time))
-      kong.response.set_header("X-Kong-Authz-Skip", "true")
+      kong.response.set_header("X-Kong-Authz-Skipped", "true")
+      kong.service.request.set_header("X-Kong-Authz-Skipped", "true")
       return true
     else
       return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
