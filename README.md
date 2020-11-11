@@ -38,7 +38,6 @@ Plugin priority: `799`
 |`forward_request_cookies` |flag to control which request cookies to forward to OPA                                                      |`string` ("`ALL`", "`SOME`" or "`NONE`")| ALL    |
 |`forward_request_cookies_names`|**list** of cookies to forward to OPA (when `forward_request_cookies` is set to  `SOME`)                       |`set`    |         |
 |`forward_request_body`       |flag to forward request body                                                                                 |`boolean`| true    |
-
 |`debug`                      |flag to return the request/response to/from OPA - not the upstream target (used for testing purposes)        |`boolean`| false   |
 |`proxy_url`           |An optional value that defines whether the plugin should connect through the given proxy server URL. This value is required if `proxy_scheme` is defined. | `string` | |
 |`proxy_scheme` |An optional value that defines which HTTP protocol scheme to use in order to connect through the proxy server. The schemes supported are: `http` and `https`. This value is required if `proxy_url` is defined. | `string` | |
