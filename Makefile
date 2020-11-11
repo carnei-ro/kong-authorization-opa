@@ -98,6 +98,10 @@ config:
 config-plugin-remove:
 	@curl -i -X DELETE http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")
 
+config-plugin-enable-fault-tolerant:
+	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.fault_tolerant=true"
+	@echo " "
+
 config-plugin-enable-debug:
 	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.debug=true"
 	@echo " "

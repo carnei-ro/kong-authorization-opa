@@ -136,7 +136,7 @@ local function request_to_opa(conf, opa_body_json)
   }
   if not ok then
     kong.log.err(err)
-    return kong.response.exit(500, { message = "An unexpected error occurred 0", error = err })
+    return nil, err
   end
 
   local res, err = client:request {
@@ -149,7 +149,7 @@ local function request_to_opa(conf, opa_body_json)
   }
   if not res then
     kong.log.err(err)
-    return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+    return nil, err
   end
 
   local content = res:read_body()
@@ -157,10 +157,10 @@ local function request_to_opa(conf, opa_body_json)
   ok, err = client:set_keepalive(conf.keepalive)
   if not ok then
     kong.log.err(err)
-    return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+    return nil, err
   end
 
-  return content
+  return content, nil
 end
 
 --- access
@@ -199,7 +199,13 @@ function _M.execute(conf)
 
   local result = body.result
   if not result then
-    return kong.response.exit(400, { message = "Could not get result from OPA", opa_response = body } , {["X-Kong-Authz-Latency"] = (ngx.now() - start_time)})
+    if conf.fault_tolerant then
+      kong.response.set_header("X-Kong-Authz-Latency", (ngx.now() - start_time))
+      kong.response.set_header("X-Kong-Authz-Skip", "true")
+      return true
+    else
+      return kong.response.exit(500, { message = "Could not get result from OPA", opa_response = body } , {["X-Kong-Authz-Latency"] = (ngx.now() - start_time)})
+    end
   end
   
   local evaluation_result_key_value = result[conf.opa_result_boolean_key]
