@@ -65,6 +65,7 @@ function _M:get(redis, key, ttl, func, ...)
   end
 
   if (value == ngx.null) or (ttl == -2) then
+    kong.response.set_header("X-Kong-Authz-Cache", "Miss")
     kong.log.debug(" => Key does not exists on Redis")
     -- execute function and put it into the cache
     value = func(...)
@@ -79,6 +80,8 @@ function _M:get(redis, key, ttl, func, ...)
       kong.log.err(" => Could not set key in Redis. ", err)
       return nil, err, nil
     end
+  else
+    kong.response.set_header("X-Kong-Authz-Cache", "Hit")
   end
 
   local ok, err = redis:set_keepalive(10000, 100)

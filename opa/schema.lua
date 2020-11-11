@@ -58,27 +58,50 @@ return {
             default = true,
             required = true
           } },
+          { forward_request_path = {
+            type = "boolean",
+            default = true,
+            required = true
+          } },
+          { forward_splitted_request_path = {
+            type = "boolean",
+            default = true,
+            required = true
+          } },
+          { forward_request_querystrings = {
+            type = "string",
+            default = "ALL",
+            required = true,
+            one_of = { "ALL", "SOME", "NONE" },
+          } },
+          { forward_request_querystrings_names = {
+            type = "set",
+            required = false,
+            elements = { type = "string" },
+          } },
           { forward_request_headers = {
-            type = "boolean",
-            default = true,
-            required = true
+            type = "string",
+            default = "ALL",
+            required = true,
+            one_of = { "ALL", "SOME", "NONE" },
           } },
-          { forward_upstream_split_path = {
-            type = "boolean",
-            default = true,
-            required = true
-          } },
-          { forward_request_uri = {
-            type = "boolean",
-            default = true,
-            required = true
-          } },
-          { forward_request_body = {
-            type = "boolean",
-            default = true,
-            required = true
+          { forward_request_headers_names = {
+            type = "set",
+            required = false,
+            elements = { type = "string" },
           } },
           { forward_request_cookies = {
+            type = "string",
+            default = "ALL",
+            required = true,
+            one_of = { "ALL", "SOME", "NONE" },
+          } },
+          { forward_request_cookies_names = {
+            type = "set",
+            required = false,
+            elements = { type = "string" },
+          } },
+          { forward_request_body = {
             type = "boolean",
             default = true,
             required = true
@@ -133,5 +156,17 @@ return {
   },
   entity_checks = {
     { mutually_required = { "config.proxy_scheme", "config.proxy_url" } },
+    { conditional = {
+      if_field = "config.forward_request_headers", if_match = { eq = "SOME" },
+      then_field = "config.forward_request_headers_names", then_match = { required = true },
+    } },
+    { conditional = {
+      if_field = "config.forward_request_cookies", if_match = { eq = "SOME" },
+      then_field = "config.forward_request_cookies_names", then_match = { required = true },
+    } },
+    { conditional = {
+      if_field = "config.forward_request_querystrings", if_match = { eq = "SOME" },
+      then_field = "config.forward_request_querystrings_names", then_match = { required = true },
+    } },
   }
 }

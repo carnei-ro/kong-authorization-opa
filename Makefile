@@ -114,5 +114,13 @@ config-plugin-disable-cache:
 	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.use_redis_cache=false"
 	@echo " "
 
+config-plugin-do-not-forward-headers:
+	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.forward_request_headers=NONE"
+	@echo " "
+
+config-plugin-forward-some-headers:
+	@curl -i -X PATCH http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")      -F "name=${NAME}"      -F "config.forward_request_headers=SOME" -F "config.forward_request_headers_names=content-type"
+	@echo " "
+
 remove-all:
 	@for i in plugins consumers routes services upstreams; do for j in $$(curl -s --url http://127.0.0.1:8001/$${i} | jq -r ".data[].id"); do curl -s -i -X DELETE --url http://127.0.0.1:8001/$${i}/$${j}; done; done

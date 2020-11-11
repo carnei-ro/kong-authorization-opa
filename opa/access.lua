@@ -42,23 +42,55 @@ local function prepare_payload(conf)
   local payload        = {["input"] = {}}
   local cookies        = resty_cookie:new()
   local path           = kong.request.get_path()
-  local raw_split_path = split(path, "/")
 
   if conf.forward_request_method then
     payload.input.method = kong.request.get_method()
   end
 
-  if conf.forward_request_headers then
-    payload.input.headers = kong.request.get_headers(1000)
+  if conf.forward_request_path then
+    payload.input.path = path
   end
 
-  if conf.forward_upstream_split_path then
-    payload.input.path_split = slice(raw_split_path, 2, #raw_split_path)
+  if conf.forward_splitted_request_path then
+    local raw_split_path = split(path, "/")
+    payload.input.splitted_path = slice(raw_split_path, 2, #raw_split_path)
   end
 
-  if conf.forward_request_uri then
-    payload.input.path  = path
-    payload.input.query = kong.request.get_query(1000)
+  if not (conf.forward_request_querystrings == "NONE") then
+    if conf.forward_request_querystrings == "SOME" then
+      payload.input.querystrings = {}
+      for _,header_name in ipairs(conf.forward_request_querystrings_names) do
+        payload.input.querystrings[header_name] = kong.request.get_query_arg(header_name)
+      end
+    else
+      payload.input.querystrings = kong.request.get_query(1000)
+    end
+  end
+
+  if not (conf.forward_request_headers == "NONE") then
+    if conf.forward_request_headers == "SOME" then
+      payload.input.headers = {}
+      for _,header_name in ipairs(conf.forward_request_headers_names) do
+        payload.input.headers[header_name] = kong.request.get_header(header_name)
+      end
+    else
+      -- ngx.req.get_headers(0)
+      payload.input.headers = kong.request.get_headers(1000)
+    end
+  end
+
+  if not (conf.forward_request_cookies == "NONE") then
+    if conf.forward_request_cookies == "SOME" then
+      payload.input.cookies = {}
+      for _,cookie_name in ipairs(conf.forward_request_cookies_names) do
+        local cookie_value, err = cookies:get(cookie_name)
+        if not err then
+          payload.input.cookies[cookie_name] = cookie_value
+        end
+      end
+    else
+      payload.input.cookies = cookies:get_all()
+    end
   end
 
   if conf.forward_request_body then
@@ -73,17 +105,10 @@ local function prepare_payload(conf)
         payload.input.request_body_base64 = true
       end
     end
-
     payload.input.request_body      = body_raw
     payload.input.request_body_args = body_args
   end
 
-  if conf.forward_request_cookies then
-    payload.input.cookies = cookies:get_all()
-    if payload.input.headers then
-      payload.input.headers.cookie = nil
-    end
-  end
   return payload
 end
 
