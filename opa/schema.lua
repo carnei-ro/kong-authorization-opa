@@ -150,6 +150,11 @@ return {
             type = "string",
             len_min = 1,
           } },
+          { fault_tolerant = {
+            type = "boolean",
+            default = true,
+            required = true
+          } },
         },
       },
     },

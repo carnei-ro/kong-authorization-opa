@@ -183,7 +183,13 @@ function _M.execute(conf)
     body, err = request_to_opa(conf, opa_body_json)
   end
   if (not body) or (err) then
-    return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+    if conf.fault_tolerant then
+      kong.response.set_header("X-Kong-Authz-Latency", (ngx.now() - start_time))
+      kong.response.set_header("X-Kong-Authz-Skip", "true"))
+      return true
+    else
+      return kong.response.exit(500, { message = "An unexpected error occurred", error = err })
+    end
   end
   body = cjson.decode(body)
 
